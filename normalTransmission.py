@@ -7,7 +7,7 @@ import subprocess as sp
 IP_DST = sys.argv[1]
 DST_PORT =  int(sys.argv[2])
 IP_SRC = None
-IP_SRC_PORT = None
+SRC_PORT = None
 data = list()
 startSeqNo = 0
 FileName = "normal.npy"
@@ -26,7 +26,7 @@ SRC_PORT = syn[TCP].sport
 startSeqNo = syn[TCP].seq
 syn_ack = sr1(syn)
 getStr = 'GET / HTTP/1.1\r\n\r\n'
-request = IP(dst=IP_DST) / TCP(dport=IP_DST_PORT, sport=syn_ack[TCP].dport,
+request = IP(dst=IP_DST) / TCP(dport=DST_PORT, sport=syn_ack[TCP].dport,
              seq=syn_ack[TCP].ack, ack=syn_ack[TCP].seq + 1, flags='A') / getStr
 sniff(prn=addACKs, lfiter=pktFilter)
 reply = sr(request)
