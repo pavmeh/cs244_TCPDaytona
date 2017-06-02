@@ -4,12 +4,12 @@ import numpy as np
 DupFileName = "dupACK.npy"
 SplitFileName = "splitACK.npy"
 NormalFileName = "normal.npy"
-opFileName = "opACK.npy"
+OpFileName = "opACK.npy"
 
-dupACKs = np.load(DupName)
+dupACKs = np.load(DupFileName)
 splitACKs = np.load(SplitFileName)
 normalACKs = np.load(NormalFileName)
-opACKs = np.load(opFileName)
+opACKs = np.load(OpFileName)
 
 plt.figure(1)
 plt.subplot(211)
