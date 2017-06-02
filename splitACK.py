@@ -34,6 +34,15 @@ socket.send(Ether() / request)
 
 def addACKs(pkt):
   global DST_PORT, IP_DST
+  if IP not in pkt:
+    return
+  if TCP not in pkt:
+    return
+  if pkt[IP].src != IP_DST:
+    return
+  if pkt[TCP].sport != DST_PORT:
+    return
+
   data.append((pkt.time - initialTs, pkt[TCP].seq - initialSeq))
 
   ip_total_len = pkt.getlayer(IP).len
@@ -48,10 +57,16 @@ def addACKs(pkt):
 
   nextACK_num = pkt[TCP].seq + tcp_seg_len + add
 
-  ACK_nums = range(pkt[TCP].seq + ACK_delta, nextACK_num, ACK_delta)
+  ACK_nums = list()
+  if ACK_delta != 0:
+    ACK_nums = range(pkt[TCP].seq + ACK_delta, nextACK_num, ACK_delta)
 
   if nextACK_num not in ACK_nums:
     ACK_nums.append(nextACK_num);
+
+  #print "received seq no"
+  #print pkt[TCP].seq
+  #print ACK_nums
 
   for ACK_num in ACK_nums:
     ack_pkt = IP(dst=IP_DST) / TCP(window=65535, dport=DST_PORT, sport=SRC_PORT,
