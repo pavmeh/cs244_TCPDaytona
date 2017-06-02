@@ -27,7 +27,7 @@ initialSeq = syn_ack[TCP].seq
 print "Received SYN_ACK!"
 getStr = 'GET / HTTP/1.1\r\n\r\n'
 request = IP(dst=IP_DST) / TCP(window=65535, dport=DST_PORT, sport=SRC_PORT,
-             seq=(syn_ack[TCP].ack), ack=(syn_ack[TCP].seq + 1), flags='A') / getStr
+             seq=(syn_ack[TCP].ack), ack=(syn_ack[TCP].seq + 1), flags='FA') / getStr
 
 print "Sending Request..."
 socket.send(Ether() / request)
@@ -55,7 +55,7 @@ def addACKs(pkt):
     add = 1
 
   ack_pkt = IP(dst=IP_DST) / TCP(window=65535, dport=DST_PORT, sport=SRC_PORT,
-             seq=(pkt[TCP].ack), ack=(pkt[TCP].seq + tcp_seg_len + 1), flags='A')
+             seq=(pkt[TCP].ack), ack=(pkt[TCP].seq + tcp_seg_len + 1 + add), flags='A')
   socket.send(Ether() / ack_pkt)
 
 print("Sniffing......")

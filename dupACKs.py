@@ -1,5 +1,6 @@
 #! /usr/bin/env python
 from scapy.all import *
+import random
 import sys
 import numpy as np
 import subprocess as sp
@@ -7,36 +8,61 @@ import subprocess as sp
 IP_DST = sys.argv[1]
 DST_PORT =  int(sys.argv[2])
 IP_SRC = None
-IP_SRC_PORT = None
+SRC_PORT = random.randint(1024,65535)
 data = list()
-startSeqNo = 0
 FileName = "dupACK.npy"
+FIN = 0x01
+
+
+socket = conf.L2socket(iface="client-eth0")
+
+syn = IP(dst=IP_DST) / TCP(window=65535, sport=SRC_PORT, dport=DST_PORT, flags='S')
+IP_SRC = syn[IP].src
+SRC_PORT = syn[TCP].sport
+
+print "sending SYN....."
+syn_ack = sr1(syn)
+initialTs = syn_ack.time
+initialSeq = syn_ack[TCP].seq
+print "Received SYN_ACK!"
+getStr = 'GET / HTTP/1.1\r\n\r\n'
+request = IP(dst=IP_DST) / TCP(window=65535, dport=DST_PORT, sport=SRC_PORT,
+             seq=(syn_ack[TCP].ack), ack=(syn_ack[TCP].seq + 1), flags='FA') / getStr
+
+print "Sending Request..."
+socket.send(Ether() / request)
+
 
 def addACKs(pkt):
-  global DST_PORT, IP_DST, startSeqNo, data
-  data.append((pkt.time, pkt[TCP].seq - startSeqNo))
+  global DST_PORT, IP_DST, data, socket
+  if IP not in pkt:
+    return
+  if TCP not in pkt:
+    return
+  if pkt[IP].src != IP_DST:
+    return
+  if pkt[TCP].sport != DST_PORT:
+    return
+
+  data.append((pkt.time - initialTs, pkt[TCP].seq - initialSeq))
+  
   ip_total_len = pkt.getlayer(IP).len
   ip_header_len = pkt.getlayer(IP).ihl * 32 / 8
   tcp_header_len = pkt.getlayer(TCP).dataofs * 32 / 8
   tcp_seg_len = ip_total_len - ip_header_len - tcp_header_len
-  ACKnum = pkt[TCP].seq + tcp_seg_len
-  pkt = IP(dst=IP_DST) / TCP(dport=IP_DST_PORT, flags='A', ack=ACKnum)
-  send(pkt, count=5)
+  
+  add = 0
+  cnt = 5
+  if pkt.flags & FIN:
+    add = 1
+    cnt = 1
 
-def pktFilter(pkt):
-  global IP_SRC, IP_DST, SRC_PORT, DST_PORT
-  return pkt[IP].src == IP_DST and pkt[IP].dst == IP_SRC and pkt[TCP].dport == SRC_PORT and pkt[TCP].sport == DST_PORT
+  ack_pkt = IP(dst=IP_DST) / TCP(window=65535, dport=DST_PORT, sport=SRC_PORT,
+             seq=(pkt[TCP].ack), ack=(pkt[TCP].seq + tcp_seg_len + 1 + add), flags='A')
+  socket.send(Ether() / ack_pkt, count= cnt)
 
-syn = IP(dst=IP_DST) / TCP(dport=IP_DST_PORT, flags='S')
-IP_SRC = syn[IP].src
-SRC_PORT = syn[TCP].sport
-startSeqNo = syn[TCP].seq
-syn_ack = sr1(syn)
-getStr = 'GET / HTTP/1.1\r\n\r\n'
-request = IP(dst=IP_DST) / TCP(dport=IP_DST_PORT, sport=syn_ack[TCP].dport,
-             seq=syn_ack[TCP].ack, ack=syn_ack[TCP].seq + 1, flags='A') / getStr
-sniff(prn=addACKs, lfiter=pktFilter)
-reply = sr(request)
-np.asarray(zip(*data))
+print("Sniffing......")
+sniff(iface="client-eth0", prn=addACKs, filter="tcp and ip", timeout=4)
+numbas = np.asarray(zip(*data))
 sp.call(["rm", "-f", FileName], shell=True)
-np.save(FileName)
+np.save(FileName, numbas)
