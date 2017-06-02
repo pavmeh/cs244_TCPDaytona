@@ -14,15 +14,14 @@ FileName = "dupACK.npy"
 
 def addACKs(pkt):
   global DST_PORT, IP_DST, startSeqNo, data
-  data.append((pkt.time, pkt[TCP.seq] - startSeqNo))
+  data.append((pkt.time, pkt[TCP].seq - startSeqNo))
   ip_total_len = pkt.getlayer(IP).len
   ip_header_len = pkt.getlayer(IP).ihl * 32 / 8
   tcp_header_len = pkt.getlayer(TCP).dataofs * 32 / 8
   tcp_seg_len = ip_total_len - ip_header_len - tcp_header_len
   ACKnum = pkt[TCP].seq + tcp_seg_len
-  for i in xrange(5):
-    pkt = IP(dst=IP_DST) / TCP(dport=IP_DST_PORT, flags='A', ack=ACKnum)
-    send(pkt)
+  pkt = IP(dst=IP_DST) / TCP(dport=IP_DST_PORT, flags='A', ack=ACKnum)
+  send(pkt, count=5)
 
 def pktFilter(pkt):
   global IP_SRC, IP_DST, SRC_PORT, DST_PORT

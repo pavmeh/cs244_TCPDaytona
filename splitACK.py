@@ -15,7 +15,7 @@ FileName = "splitACK.npy"
 
 def addACKs(pkt):
   global DST_PORT, IP_DST, prevACKno
-  data.append((pkt.time, pkt[TCP.seq] - startSeqNo))
+  data.append((pkt.time, pkt[TCP].seq - startSeqNo))
   ip_total_len = pkt.getlayer(IP).len
   ip_header_len = pkt.getlayer(IP).ihl * 32 / 8
   tcp_header_len = pkt.getlayer(TCP).dataofs * 32 / 8

@@ -4,10 +4,12 @@ import numpy as np
 DupFileName = "dupACK.npy"
 SplitFileName = "splitACK.npy"
 NormalFileName = "normal.npy"
+opFileName = "opACK.npy"
 
 dupACKs = np.load(DupName)
 splitACKs = np.load(SplitFileName)
 normalACKs = np.load(NormalFileName)
+opACKs = np.load(opFileName)
 
 plt.figure(1)
 plt.subplot(211)
@@ -20,6 +22,13 @@ plt.ylabel("Seq Number")
 plt.subplot(212)
 plt.Title("Split ACKs")
 plt.scatter(*zip(splitACKs))
+plt.scatter(*zip(normal))
+plt.xlabel("time (s)")
+plt.ylabel("Seq Number")
+
+plt.subplot(213)
+plt.Title("OP ACKs")
+plt.scatter(*zip(opACKs))
 plt.scatter(*zip(normal))
 plt.xlabel("time (s)")
 plt.ylabel("Seq Number")

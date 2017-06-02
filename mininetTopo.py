@@ -27,12 +27,12 @@ net.pingAll()
 
 h1 = net.get('h1')
 h2 = net.get('h2')
-h2.popen("./mTCPserver %s %s" % (h2.IP(), PORT), shell=True)
+h2.popen("python webserver.py" % (h2.IP(), PORT), shell=True)
 h1.popen("./normalTransmission.py %s %s" % (h2.IP(), PORT), shell=True).wait()
 h1.popen("./dupACKs.py %s %s" % (h2.IP(), PORT), shell=True).wait()
 h1.popen("./splitACKs.py %s %s" % (h2.IP(), PORT), shell=True).wait()
-Popen("pgrep -f mTCPserver | xargs kill -2", shell=True).wait()
-
+h1.popen("./opACKs.py %s %s" % (h2.IP(), PORT), shell=True).wait()
+Popen("pgrep -f webserver.py | xargs kill -9", shell=True).wait()
 
 
 net.stop()

@@ -8,8 +8,7 @@ class CS144Handler(SimpleHTTPServer.SimpleHTTPRequestHandler):
         return str(self.client_address[0])
 
 
-PORT = 80
-
+PORT = 8888
 Handler = CS144Handler
 httpd = SocketServer.TCPServer(("", PORT), Handler)
 print "Server1: httpd serving at port", PORT
