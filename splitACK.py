@@ -1,9 +1,9 @@
 #! /usr/bin/env python
 from scapy.all import *
+import random
 import sys
 import numpy as np
 import subprocess as sp
-
 
 IP_DST = sys.argv[1]
 DST_PORT =  int(sys.argv[2])
@@ -33,7 +33,7 @@ print "Sending Request..."
 socket.send(Ether() / request)
 
 def addACKs(pkt):
-  global DST_PORT, IP_DST
+  global DST_PORT, IP_DST, data, socket
   if IP not in pkt:
     return
   if TCP not in pkt:

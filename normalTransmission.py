@@ -10,7 +10,6 @@ DST_PORT =  int(sys.argv[2])
 IP_SRC = None
 SRC_PORT = random.randint(1024,65535)
 data = list()
-startSeqNo = 0
 FileName = "normal.npy"
 
 FIN = 0x01
@@ -34,8 +33,7 @@ print "Sending Request..."
 socket.send(Ether() / request)
 
 def addACKs(pkt):
-  global DST_PORT, IP_DST, startSeqNo, data, socket
-  print "received packet"
+  global DST_PORT, IP_DST, data, socket
   if IP not in pkt:
     return
   if TCP not in pkt:
@@ -44,14 +42,14 @@ def addACKs(pkt):
     return
   if pkt[TCP].sport != DST_PORT:
     return
-  print "filtered packet"
-  print pkt[TCP].seq
+
+  data.append((pkt.time - initialTs, pkt[TCP].seq - initialSeq))
+  
   ip_total_len = pkt.getlayer(IP).len
   ip_header_len = pkt.getlayer(IP).ihl * 32 / 8
   tcp_header_len = pkt.getlayer(TCP).dataofs * 32 / 8
   tcp_seg_len = ip_total_len - ip_header_len - tcp_header_len
   
-  data.append((pkt.time - initialTs, pkt[TCP].seq - initialSeq))
   add = 0
   if pkt.flags & FIN:
     add = 1
