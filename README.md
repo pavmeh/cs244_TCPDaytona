@@ -1,6 +1,6 @@
 # cs244_TCPDaytona
 Provision an n1-standard-2 (2 vCPUs, 7.5 GB memory) Google Cloud instance
-running Ubuntu 16.04. Allow for HTTP and HTTPS traffic.
+running Ubuntu 16.04. Allow HTTP and HTTPS traffic.
 
 Install git if needed:
 sudo apt-get update
@@ -11,8 +11,10 @@ clone repo:
 git clone https://github.com/pavmeh/cs244_TCPDaytona/
 ```
 Use ``` ./setup.sh ``` to install all the dependencies. Press Y if prompted.
-If this breaks, run the commands in the script individually in the terminal.
-This only needs to be run only once per VM instance.
+Note: DO NOT run this with ```sudo```, since this will not install the
+dependencies correctly. If this breaks, run the commands in the script
+individually in the terminal. This only needs to be run only once per VM
+instance.
 
 Run ```./run_experiments.sh``` to run the experiment. It will take
 approximately 30 seconds to run. An http server automatically create that can
@@ -26,5 +28,5 @@ http://&lt;external IP&gt;/&lt;name of file&gt;
 so that it uses http instead of https. Then, you can simply type in the name of
 the png file you wish to view after the slash, as shown above.
 
-If you wish to run the experiment agian, run ```./cleanup.sh``` first. This
+If you wish to run the experiment again, run ```./cleanup.sh``` first. This
 deletes the previous data files.
