@@ -38,6 +38,8 @@
 #include "lwip/sys.h"
 #include "lwip/sockets.h"
 
+#include "rtp.h"
+
 #include "rtpdata.h"
 
 #include <string.h>
@@ -99,8 +101,8 @@
 #endif
 PACK_STRUCT_BEGIN
 struct rtp_hdr {
-  PACK_STRUCT_FIELD(u8_t  version);
-  PACK_STRUCT_FIELD(u8_t  payloadtype);
+  PACK_STRUCT_FLD_8(u8_t  version);
+  PACK_STRUCT_FLD_8(u8_t  payloadtype);
   PACK_STRUCT_FIELD(u16_t seqNum);
   PACK_STRUCT_FIELD(u32_t timestamp);
   PACK_STRUCT_FIELD(u32_t ssrc);
@@ -123,22 +125,22 @@ rtp_send_packets( int sock, struct sockaddr_in* to)
   struct rtp_hdr* rtphdr;
   u8_t*           rtp_payload;
   int             rtp_payload_size;
-  int             rtp_data_index;
+  size_t          rtp_data_index;
 
   /* prepare RTP packet */
   rtphdr = (struct rtp_hdr*)rtp_send_packet;
   rtphdr->version     = RTP_VERSION;
   rtphdr->payloadtype = 0;
   rtphdr->ssrc        = PP_HTONL(RTP_SSRC);
-  rtphdr->timestamp   = htonl(ntohl(rtphdr->timestamp) + RTP_TIMESTAMP_INCREMENT);
+  rtphdr->timestamp   = lwip_htonl(lwip_ntohl(rtphdr->timestamp) + RTP_TIMESTAMP_INCREMENT);
 
   /* send RTP stream packets */
   rtp_data_index = 0;
   do {
     rtp_payload      = rtp_send_packet+sizeof(struct rtp_hdr);
-    rtp_payload_size = min(RTP_PAYLOAD_SIZE, (sizeof(rtp_data) - rtp_data_index));
+    rtp_payload_size = LWIP_MIN(RTP_PAYLOAD_SIZE, (sizeof(rtp_data) - rtp_data_index));
 
-    memcpy(rtp_payload, rtp_data + rtp_data_index, rtp_payload_size);
+    MEMCPY(rtp_payload, rtp_data + rtp_data_index, rtp_payload_size);
 
     /* set MARKER bit in RTP header on the last packet of an image */
     rtphdr->payloadtype = RTP_PAYLOADTYPE | (((rtp_data_index + rtp_payload_size)
@@ -147,7 +149,7 @@ rtp_send_packets( int sock, struct sockaddr_in* to)
     /* send RTP stream packet */
     if (sendto(sock, rtp_send_packet, sizeof(struct rtp_hdr) + rtp_payload_size,
         0, (struct sockaddr *)to, sizeof(struct sockaddr)) >= 0) {
-      rtphdr->seqNum  = htons(ntohs(rtphdr->seqNum) + 1);
+      rtphdr->seqNum  = lwip_htons(lwip_ntohs(rtphdr->seqNum) + 1);
       rtp_data_index += rtp_payload_size;
     } else {
       LWIP_DEBUGF(RTP_DEBUG, ("rtp_sender: not sendto==%i\n", errno));
@@ -218,7 +220,7 @@ rtp_recv_thread(void *arg)
   struct rtp_hdr*    rtphdr;
   u32_t              rtp_stream_address;
   int                timeout;
-  int                result;
+  size_t             result;
   int                recvrtppackets  = 0;
   int                lostrtppackets  = 0;
   u16_t              lastrtpseq = 0;
@@ -259,12 +261,12 @@ rtp_recv_thread(void *arg)
             if (result >= sizeof(struct rtp_hdr)) {
               rtphdr = (struct rtp_hdr *)rtp_recv_packet;
               recvrtppackets++;
-              if ((lastrtpseq == 0) || ((lastrtpseq + 1) == ntohs(rtphdr->seqNum))) {
+              if ((lastrtpseq == 0) || ((lastrtpseq + 1) == lwip_ntohs(rtphdr->seqNum))) {
                 RTP_RECV_PROCESSING((rtp_recv_packet + sizeof(rtp_hdr)),(result-sizeof(rtp_hdr)));
               } else {
                 lostrtppackets++;
               }
-              lastrtpseq = ntohs(rtphdr->seqNum);
+              lastrtpseq = lwip_ntohs(rtphdr->seqNum);
               if ((recvrtppackets % RTP_RECV_STATS) == 0) {
                 LWIP_DEBUGF(RTP_DEBUG, ("rtp_recv_thread: recv %6i packet(s) / lost %4i packet(s) (%.4f%%)...\n", recvrtppackets, lostrtppackets, (lostrtppackets*100.0)/recvrtppackets));
               }

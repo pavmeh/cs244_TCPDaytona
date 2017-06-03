@@ -1,5 +1,5 @@
-#ifndef __CHARGEN_H__
-#define __CHARGEN_H__
+#ifndef LWIP_CHARGEN_H
+#define LWIP_CHARGEN_H
 
 #include "lwip/opt.h"
 
@@ -9,5 +9,4 @@ void chargen_init(void);
 
 #endif /* LWIP_SOCKET */
 
-
-#endif /* __CHARGEN_H__ */
+#endif /* LWIP_CHARGEN_H */

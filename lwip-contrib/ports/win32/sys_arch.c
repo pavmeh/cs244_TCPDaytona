@@ -34,7 +34,13 @@
 #include <stdlib.h>
 #include <stdio.h> /* sprintf() for task names */
 
+#ifdef _MSC_VER
+#pragma warning (push, 3)
+#endif
 #include <windows.h>
+#ifdef _MSC_VER
+#pragma warning (pop)
+#endif
 #include <time.h>
 
 #include <lwip/opt.h>
@@ -45,20 +51,42 @@
 
 /* These functions are used from NO_SYS also, for precise timer triggering */
 LARGE_INTEGER freq, sys_start_time;
+#define SYS_INITIALIZED() (freq.QuadPart != 0)
 
-void sys_init_timing()
+DWORD netconn_sem_tls_index;
+
+HCRYPTPROV hcrypt;
+u32_t sys_win_rand(void)
+{
+  u32_t ret;
+  if (CryptGenRandom(hcrypt, sizeof(ret), (BYTE*)&ret)) {
+    return ret;
+  }
+  LWIP_ASSERT("CryptGenRandom failed", 0);
+  return 0;
+}
+
+static void sys_win_rand_init(void)
+{
+  if(!CryptAcquireContext(&hcrypt, NULL, NULL, PROV_RSA_FULL, 0)) {
+    LWIP_ASSERT("CryptAcquireContext failed", 0);
+  }
+}
+
+static void sys_init_timing(void)
 {
   QueryPerformanceFrequency(&freq);
   QueryPerformanceCounter(&sys_start_time);
 }
 
-static LONGLONG sys_get_ms_longlong()
+static LONGLONG sys_get_ms_longlong(void)
 {
   LONGLONG ret;
   LARGE_INTEGER now;
 #if NO_SYS
-  if (freq.QuadPart == 0) {
-    sys_init_timing();
+  if (!SYS_INITIALIZED()) {
+    sys_init();
+    LWIP_ASSERT("initialization failed", SYS_INITIALIZED());
   }
 #endif /* NO_SYS */
   QueryPerformanceCounter(&now);
@@ -66,41 +94,51 @@ static LONGLONG sys_get_ms_longlong()
   return (u32_t)(((ret)*1000)/freq.QuadPart);
 }
 
-u32_t sys_jiffies()
+u32_t sys_jiffies(void)
 {
   return (u32_t)sys_get_ms_longlong();
 }
 
-u32_t sys_now()
+u32_t sys_now(void)
 {
   return (u32_t)sys_get_ms_longlong();
 }
 
 CRITICAL_SECTION critSec;
 
-void InitSysArchProtect()
+static void InitSysArchProtect(void)
 {
   InitializeCriticalSection(&critSec);
 }
-u32_t sys_arch_protect()
+
+sys_prot_t sys_arch_protect(void)
 {
+#if NO_SYS
+  if (!SYS_INITIALIZED()) {
+    sys_init();
+    LWIP_ASSERT("initialization failed", SYS_INITIALIZED());
+  }
+#endif
   EnterCriticalSection(&critSec);
   return 0;
 }
-void sys_arch_unprotect(u32_t pval)
+
+void sys_arch_unprotect(sys_prot_t pval)
 {
   LWIP_UNUSED_ARG(pval);
   LeaveCriticalSection(&critSec);
 }
 
-void msvc_sys_init()
+static void msvc_sys_init(void)
 {
-  srand(time(0));
+  sys_win_rand_init();
   sys_init_timing();
   InitSysArchProtect();
+  netconn_sem_tls_index = TlsAlloc();
+  LWIP_ASSERT("TlsAlloc failed", netconn_sem_tls_index != TLS_OUT_OF_INDEXES);
 }
 
-void sys_init()
+void sys_init(void)
 {
   msvc_sys_init();
 }
@@ -108,16 +146,13 @@ void sys_init()
 #if !NO_SYS
 
 struct threadlist {
+  lwip_thread_fn function;
+  void *arg;
   DWORD id;
   struct threadlist *next;
 };
 
 struct threadlist *lwip_win32_threads = NULL;
-
-void do_sleep(int ms)
-{
-  Sleep(ms);
-}
 
 err_t sys_sem_new(sys_sem_t *sem, u8_t count)
 {
@@ -138,7 +173,7 @@ err_t sys_sem_new(sys_sem_t *sem, u8_t count)
    
   /* failed to allocate memory... */
   SYS_STATS_INC(sem.err);
-  sem->sem = SYS_SEM_NULL;
+  sem->sem = NULL;
   return ERR_MEM;
 }
 
@@ -146,7 +181,7 @@ void sys_sem_free(sys_sem_t *sem)
 {
   /* parameter check */
   LWIP_ASSERT("sem != NULL", sem != NULL);
-  LWIP_ASSERT("sem->sem != SYS_SEM_NULL", sem->sem != SYS_SEM_NULL);
+  LWIP_ASSERT("sem->sem != NULL", sem->sem != NULL);
   LWIP_ASSERT("sem->sem != INVALID_HANDLE_VALUE", sem->sem != INVALID_HANDLE_VALUE);
   CloseHandle(sem->sem);
 
@@ -162,7 +197,8 @@ u32_t sys_arch_sem_wait(sys_sem_t *sem, u32_t timeout)
   DWORD ret;
   LONGLONG starttime, endtime;
   LWIP_ASSERT("sem != NULL", sem != NULL);
-  LWIP_ASSERT("sem != INVALID_HANDLE_VALUE", sem != INVALID_HANDLE_VALUE);
+  LWIP_ASSERT("sem->sem != NULL", sem->sem != NULL);
+  LWIP_ASSERT("sem->sem != INVALID_HANDLE_VALUE", sem->sem != INVALID_HANDLE_VALUE);
   if(!timeout)
   {
     /* wait infinite */
@@ -175,7 +211,6 @@ u32_t sys_arch_sem_wait(sys_sem_t *sem, u32_t timeout)
   }
   else
   {
-    int ret;
     starttime = sys_get_ms_longlong();
     ret = WaitForSingleObject(sem->sem, timeout);
     LWIP_ASSERT("Error waiting for semaphore", (ret == WAIT_OBJECT_0) || (ret == WAIT_TIMEOUT));
@@ -201,6 +236,117 @@ void sys_sem_signal(sys_sem_t *sem)
   LWIP_ASSERT("sem->sem != INVALID_HANDLE_VALUE", sem->sem != INVALID_HANDLE_VALUE);
   ret = ReleaseSemaphore(sem->sem, 1, NULL);
   LWIP_ASSERT("Error releasing semaphore", ret != 0);
+  LWIP_UNUSED_ARG(ret);
+}
+
+err_t sys_mutex_new(sys_mutex_t *mutex)
+{
+  HANDLE new_mut = NULL;
+
+  LWIP_ASSERT("mutex != NULL", mutex != NULL);
+
+  new_mut = CreateMutex(NULL, FALSE, NULL);
+  LWIP_ASSERT("Error creating mutex", new_mut != NULL);
+  if(new_mut != NULL) {
+    SYS_STATS_INC_USED(mutex);
+#if LWIP_STATS && SYS_STATS
+    LWIP_ASSERT("sys_mutex_new() counter overflow", lwip_stats.sys.mutex.used != 0 );
+#endif /* LWIP_STATS && SYS_STATS*/
+    mutex->mut = new_mut;
+    return ERR_OK;
+  }
+   
+  /* failed to allocate memory... */
+  SYS_STATS_INC(mutex.err);
+  mutex->mut = NULL;
+  return ERR_MEM;
+}
+
+void sys_mutex_free(sys_mutex_t *mutex)
+{
+  /* parameter check */
+  LWIP_ASSERT("mutex != NULL", mutex != NULL);
+  LWIP_ASSERT("mutex->mut != NULL", mutex->mut != NULL);
+  LWIP_ASSERT("mutex->mut != INVALID_HANDLE_VALUE", mutex->mut != INVALID_HANDLE_VALUE);
+  CloseHandle(mutex->mut);
+
+  SYS_STATS_DEC(mutex.used);
+#if LWIP_STATS && SYS_STATS
+  LWIP_ASSERT("sys_mutex_free() closed more than created", lwip_stats.sys.mutex.used != (u16_t)-1);
+#endif /* LWIP_STATS && SYS_STATS */
+  mutex->mut = NULL;
+}
+
+void sys_mutex_lock(sys_mutex_t *mutex)
+{
+  DWORD ret;
+  LWIP_ASSERT("mutex != NULL", mutex != NULL);
+  LWIP_ASSERT("mutex->mut != NULL", mutex->mut != NULL);
+  LWIP_ASSERT("mutex->mut != INVALID_HANDLE_VALUE", mutex->mut != INVALID_HANDLE_VALUE);
+  /* wait infinite */
+  ret = WaitForSingleObject(mutex->mut, INFINITE);
+  LWIP_ASSERT("Error waiting for mutex", ret == WAIT_OBJECT_0);
+  LWIP_UNUSED_ARG(ret);
+}
+
+void sys_mutex_unlock(sys_mutex_t *mutex)
+{
+  LWIP_ASSERT("mutex != NULL", mutex != NULL);
+  LWIP_ASSERT("mutex->mut != NULL", mutex->mut != NULL);
+  LWIP_ASSERT("mutex->mut != INVALID_HANDLE_VALUE", mutex->mut != INVALID_HANDLE_VALUE);
+  /* wait infinite */
+  if(!ReleaseMutex(mutex->mut))
+  {
+    LWIP_ASSERT("Error releasing mutex", 0);
+  }
+}
+
+
+#ifdef _MSC_VER
+const DWORD MS_VC_EXCEPTION=0x406D1388;
+#pragma pack(push,8)
+typedef struct tagTHREADNAME_INFO
+{
+  DWORD dwType; /* Must be 0x1000. */
+  LPCSTR szName; /* Pointer to name (in user addr space). */
+  DWORD dwThreadID; /* Thread ID (-1=caller thread). */
+  DWORD dwFlags; /* Reserved for future use, must be zero. */
+} THREADNAME_INFO;
+#pragma pack(pop)
+static void SetThreadName(DWORD dwThreadID, const char* threadName)
+{
+  THREADNAME_INFO info;
+  info.dwType = 0x1000;
+  info.szName = threadName;
+  info.dwThreadID = dwThreadID;
+  info.dwFlags = 0;
+
+  __try
+  {
+    RaiseException(MS_VC_EXCEPTION, 0, sizeof(info)/sizeof(ULONG_PTR), (ULONG_PTR*)&info);
+  }
+  __except(EXCEPTION_EXECUTE_HANDLER)
+  {
+  }
+}
+#else /* _MSC_VER */
+static void SetThreadName(DWORD dwThreadID, const char* threadName)
+{
+  LWIP_UNUSED_ARG(dwThreadID);
+  LWIP_UNUSED_ARG(threadName);
+}
+#endif /* _MSC_VER */
+
+static void sys_thread_function(void* arg)
+{
+  struct threadlist* t = (struct threadlist*)arg;
+#if LWIP_NETCONN_SEM_PER_THREAD
+  sys_arch_netconn_sem_alloc();
+#endif
+  t->function(t->arg);
+#if LWIP_NETCONN_SEM_PER_THREAD
+  sys_arch_netconn_sem_free();
+#endif
 }
 
 sys_thread_t sys_thread_new(const char *name, lwip_thread_fn function, void *arg, int stacksize, int prio)
@@ -216,13 +362,17 @@ sys_thread_t sys_thread_new(const char *name, lwip_thread_fn function, void *arg
   new_thread = (struct threadlist*)malloc(sizeof(struct threadlist));
   LWIP_ASSERT("new_thread != NULL", new_thread != NULL);
   if(new_thread != NULL) {
+    new_thread->function = function;
+    new_thread->arg = arg;
     SYS_ARCH_PROTECT(lev);
     new_thread->next = lwip_win32_threads;
     lwip_win32_threads = new_thread;
 
-    h = CreateThread(0, 0, (LPTHREAD_START_ROUTINE)function, arg, 0, &(new_thread->id));
+    h = CreateThread(0, 0, (LPTHREAD_START_ROUTINE)sys_thread_function, new_thread, 0, &(new_thread->id));
     LWIP_ASSERT("h != 0", h != 0);
     LWIP_ASSERT("h != -1", h != INVALID_HANDLE_VALUE);
+    LWIP_UNUSED_ARG(h);
+    SetThreadName(new_thread->id, name);
 
     SYS_ARCH_UNPROTECT(lev);
     return new_thread->id;
@@ -286,6 +436,7 @@ void sys_mbox_post(sys_mbox_t *q, void *msg)
   LWIP_ASSERT("mbox is full!", q->head != q->tail);
   ret = ReleaseSemaphore(q->sem, 1, 0);
   LWIP_ASSERT("Error releasing sem", ret != 0);
+  LWIP_UNUSED_ARG(ret);
 
   SYS_ARCH_UNPROTECT(lev);
 }
@@ -317,6 +468,7 @@ err_t sys_mbox_trypost(sys_mbox_t *q, void *msg)
   LWIP_ASSERT("mbox is full!", q->head != q->tail);
   ret = ReleaseSemaphore(q->sem, 1, 0);
   LWIP_ASSERT("Error releasing sem", ret != 0);
+  LWIP_UNUSED_ARG(ret);
 
   SYS_ARCH_UNPROTECT(lev);
   return ERR_OK;
@@ -395,5 +547,40 @@ u32_t sys_arch_mbox_tryfetch(sys_mbox_t *q, void **msg)
     return SYS_ARCH_TIMEOUT;
   }
 }
+
+#if LWIP_NETCONN_SEM_PER_THREAD
+sys_sem_t* sys_arch_netconn_sem_get(void)
+{
+  LPVOID tls_data = TlsGetValue(netconn_sem_tls_index);
+  return (sys_sem_t*)tls_data;
+}
+
+void sys_arch_netconn_sem_alloc(void)
+{
+  sys_sem_t *sem;
+  err_t err;
+  BOOL done;
+
+  sem = (sys_sem_t*)malloc(sizeof(sys_sem_t));
+  LWIP_ASSERT("failed to allocate memory for TLS semaphore", sem != NULL);
+  err = sys_sem_new(sem, 0);
+  LWIP_ASSERT("failed to initialise TLS semaphore", err == ERR_OK);
+  done = TlsSetValue(netconn_sem_tls_index, sem);
+  LWIP_UNUSED_ARG(done);
+  LWIP_ASSERT("failed to initialise TLS semaphore storage", done == TRUE);
+}
+
+void sys_arch_netconn_sem_free(void)
+{
+  LPVOID tls_data = TlsGetValue(netconn_sem_tls_index);
+  if (tls_data != NULL) {
+    BOOL done;
+    free(tls_data);
+    done = TlsSetValue(netconn_sem_tls_index, NULL);
+    LWIP_UNUSED_ARG(done);
+    LWIP_ASSERT("failed to de-init TLS semaphore storage", done == TRUE);
+  }
+}
+#endif /* LWIP_NETCONN_SEM_PER_THREAD */
 
 #endif /* !NO_SYS */

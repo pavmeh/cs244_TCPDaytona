@@ -29,30 +29,41 @@
  * Author: Adam Dunkels <adam@sics.se>
  *
  */
-#ifndef __LWIPOPTS_H__
-#define __LWIPOPTS_H__
+#ifndef LWIP_LWIPOPTS_H
+#define LWIP_LWIPOPTS_H
+
+#define LWIP_IPV4                  1
+#define LWIP_IPV6                  1
 
 #define NO_SYS                     0
 #define LWIP_SOCKET               (NO_SYS==0)
 #define LWIP_NETCONN              (NO_SYS==0)
 
-#define LWIP_IGMP                  1
-#define LWIP_ICMP                  1
-#define LWIP_SNMP                  1
+#define LWIP_IGMP                  LWIP_IPV4
+#define LWIP_ICMP                  LWIP_IPV4
 
-#define LWIP_DNS                   1
+#define LWIP_SNMP                  LWIP_UDP
+#define MIB2_STATS                 LWIP_SNMP
+#ifdef LWIP_HAVE_MBEDTLS
+#define LWIP_SNMP_V3               (LWIP_SNMP)
+#endif
+
+#define LWIP_DNS                   LWIP_UDP
+#define LWIP_MDNS_RESPONDER        LWIP_UDP
+
+#define LWIP_NUM_NETIF_CLIENT_DATA (LWIP_MDNS_RESPONDER)
 
 #define LWIP_HAVE_LOOPIF           1
 #define LWIP_NETIF_LOOPBACK        1
 #define LWIP_LOOPBACK_MAX_PBUFS    10
 
-#define TCP_LISTEN_BACKLOG         0
+#define TCP_LISTEN_BACKLOG         1
 
 #define LWIP_COMPAT_SOCKETS        1
 #define LWIP_SO_RCVTIMEO           1
 #define LWIP_SO_RCVBUF             1
 
-#define LWIP_TCPIP_CORE_LOCKING    0
+#define LWIP_TCPIP_CORE_LOCKING    1
 
 #define LWIP_NETIF_LINK_CALLBACK   1
 #define LWIP_NETIF_STATUS_CALLBACK 1
@@ -141,7 +152,7 @@ a lot of data that needs to be copied, this should be set high. */
 
 /* ---------- Pbuf options ---------- */
 /* PBUF_POOL_SIZE: the number of buffers in the pbuf pool. */
-#define PBUF_POOL_SIZE          120
+#define PBUF_POOL_SIZE          160
 
 /* PBUF_POOL_BUFSIZE: the size of each pbuf in the pbuf pool. */
 #define PBUF_POOL_BUFSIZE       128
@@ -161,6 +172,13 @@ a lot of data that needs to be copied, this should be set high. */
 /* ---------- TCP options ---------- */
 #define LWIP_TCP                1
 #define TCP_TTL                 255
+
+#define LWIP_ALTCP              (LWIP_TCP)
+#ifdef LWIP_HAVE_MBEDTLS
+#define LWIP_ALTCP_TLS          (LWIP_TCP)
+#define LWIP_ALTCP_TLS_MBEDTLS  (LWIP_TCP)
+#endif
+
 
 /* Controls if TCP should queue segments that arrive out of
    order. Define to 0 if your device is low on memory. */
@@ -218,7 +236,7 @@ a lot of data that needs to be copied, this should be set high. */
 /* ---------- DHCP options ---------- */
 /* Define LWIP_DHCP to 1 if you want DHCP configuration of
    interfaces. */
-#define LWIP_DHCP               0
+#define LWIP_DHCP               LWIP_UDP
 
 /* 1 if you want to do an ARP check on the offered address
    (recommended). */
@@ -226,14 +244,18 @@ a lot of data that needs to be copied, this should be set high. */
 
 
 /* ---------- AUTOIP options ------- */
-#define LWIP_AUTOIP             0
+#define LWIP_AUTOIP            (LWIP_DHCP)
 #define LWIP_DHCP_AUTOIP_COOP  (LWIP_DHCP && LWIP_AUTOIP)
 
 
 /* ---------- UDP options ---------- */
 #define LWIP_UDP                1
-#define LWIP_UDPLITE            1
+#define LWIP_UDPLITE            LWIP_UDP
 #define UDP_TTL                 255
+
+
+/* ---------- RAW options ---------- */
+#define LWIP_RAW                1
 
 
 /* ---------- Statistics options ---------- */
@@ -258,7 +280,7 @@ a lot of data that needs to be copied, this should be set high. */
 
 /* ---------- PPP options ---------- */
 
-#define PPP_SUPPORT             0      /* Set > 0 for PPP */
+#define PPP_SUPPORT             1      /* Set > 0 for PPP */
 
 #if PPP_SUPPORT
 
@@ -274,12 +296,12 @@ a lot of data that needs to be copied, this should be set high. */
 
 #define PAP_SUPPORT             1      /* Set > 0 for PAP. */
 #define CHAP_SUPPORT            1      /* Set > 0 for CHAP. */
-#define MSCHAP_SUPPORT          0      /* Set > 0 for MSCHAP (NOT FUNCTIONAL!) */
+#define MSCHAP_SUPPORT          0      /* Set > 0 for MSCHAP */
 #define CBCP_SUPPORT            0      /* Set > 0 for CBCP (NOT FUNCTIONAL!) */
-#define CCP_SUPPORT             0      /* Set > 0 for CCP (NOT FUNCTIONAL!) */
+#define CCP_SUPPORT             0      /* Set > 0 for CCP */
 #define VJ_SUPPORT              1      /* Set > 0 for VJ header compression. */
 #define MD5_SUPPORT             1      /* Set > 0 for MD5 (see also CHAP) */
 
 #endif /* PPP_SUPPORT */
 
-#endif /* __LWIPOPTS_H__ */
+#endif /* LWIP_LWIPOPTS_H */

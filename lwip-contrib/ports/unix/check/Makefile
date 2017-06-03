@@ -29,46 +29,34 @@
 # Author: Adam Dunkels <adam@sics.se>
 #
  
-CODEDIR=../../../../lwip
-LWIPDIR=$(CODEDIR)/src
-
-LDFLAGS:=$(LDFLAGS) -lcheck
-CFLAGS:=$(CFLAGS) -I/usr/include/check \
-	-I$(LWIPDIR)/include -I$(LWIPDIR)/include/ipv4 \
-	-I$(LWIPDIR)/include/ipv6 -Iunix/include -I. -I../include
-
-COREFILES=$(LWIPDIR)/core/mem.c $(LWIPDIR)/core/memp.c $(LWIPDIR)/core/netif.c \
-	$(LWIPDIR)/core/pbuf.c $(LWIPDIR)/core/raw.c \
-	$(LWIPDIR)/core/stats.c $(LWIPDIR)/core/sys.c \
-        $(LWIPDIR)/core/tcp.c $(LWIPDIR)/core/tcp_in.c \
-        $(LWIPDIR)/core/tcp_out.c $(LWIPDIR)/core/udp.c $(LWIPDIR)/core/dhcp.c \
-	$(LWIPDIR)/core/init.c $(LWIPDIR)/core/timers.c $(LWIPDIR)/core/def.c \
-	$(LWIPDIR)/core/inet_chksum.c $(LWIPDIR)/netif/etharp.c
-CORE4FILES=$(LWIPDIR)/core/ipv4/icmp.c $(LWIPDIR)/core/ipv4/ip4.c \
-	$(LWIPDIR)/core/ipv4/ip4_addr.c $(LWIPDIR)/core/ipv4/ip_frag.c 
-
-ARCHFILES=sys_arch.c
-
-# LWIPFILES: All the above.
-LWIPFILES=$(COREFILES) $(CORE4FILES) $(ARCHFILES)
-LWIPOBJS=$(LWIPFILES:.c=.o)
-
-TESTDIR=$(CODEDIR)/test/unit
-TESTFILES=$(TESTDIR)/lwip_unittests.c $(TESTDIR)/udp/test_udp.c $(TESTDIR)/etharp/test_etharp.c $(TESTDIR)/tcp/tcp_helper.c \
-	$(TESTDIR)/tcp/test_tcp_oos.c $(TESTDIR)/tcp/test_tcp.c $(TESTDIR)/core/test_mem.c
-TESTOBJS=$(TESTFILES:.c=.o)
-
-%.o: %.c Makefile lwipopts.h
-	@$(CC) $(CFLAGS) -c $< -o $@
-
-all: lwip_unittests
+all compile: lwip_unittests
 .PHONY: all clean check
 
-clean:
-	@rm -f lwip_unittests $(LWIPOBJS) $(TESTOBJS)
+# The include path to sys_arch.h and lwipopts.h must be first, so this must be before Common.mk
+CFLAGS=-DLWIP_NOASSERT_ON_ERROR -I/usr/include/check -I$(LWIPDIR)/../test/unit
 
-lwip_unittests: $(TESTOBJS) $(LWIPOBJS)
-	@$(CC) $(TESTOBJS) $(LWIPOBJS) -o lwip_unittests $(LDFLAGS)
+# Prevent compiling sys_arch.c of unix port because unit test provide their own port
+SYSARCH?=
+include ../Common.mk
+
+LDFLAGS:=$(LDFLAGS) -lcheck -lm -lsubunit
+
+TESTDIR=$(LWIPDIR)/../test/unit
+include $(TESTDIR)/Filelists.mk
+TESTOBJS=$(notdir $(TESTFILES:.c=.o))
+
+clean:
+	@rm -f *.o $(LWIPLIBCOMMON) $(APPLIB) lwip_unittests *.s .depend* *.core core
+
+depend dep: .depend
+
+include .depend
+
+.depend: $(LWIPFILES) $(APPFILES) $(TESTFILES)
+	$(CCDEP) $(CFLAGS) -MM $^ > .depend || rm -f .depend
+
+lwip_unittests: .depend $(TESTOBJS) $(LWIPLIBCOMMON) $(APPLIB)
+	$(CC) $(CFLAGS) -o lwip_unittests $(TESTOBJS)  -Wl,--start-group $(LWIPLIBCOMMON) $(APPLIB) $(LDFLAGS) -Wl,--end-group
 
 check: lwip_unittests
 	@./lwip_unittests

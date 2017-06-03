@@ -29,18 +29,14 @@
  * Author: Adam Dunkels <adam@sics.se>
  *
  */
-#ifndef __ARCH_CC_H__
-#define __ARCH_CC_H__
-
-#include <stdio.h> /* printf, fflush, FILE */
-#include <stdlib.h> /* abort */
-#include <limits.h>
+#ifndef LWIP_ARCH_CC_H
+#define LWIP_ARCH_CC_H
 
 #ifdef _MSC_VER
-#pragma warning (disable: 4244) /* disable conversion warning (implicit integer promotion!) */
 #pragma warning (disable: 4127) /* conditional expression is constant */
 #pragma warning (disable: 4996) /* 'strncpy' was declared deprecated */
 #pragma warning (disable: 4103) /* structure packing changed by including file */
+#pragma warning (disable: 4820) /* 'x' bytes padding added after data member 'y' */
 #endif
 
 #define LWIP_PROVIDE_ERRNO
@@ -50,16 +46,16 @@
 #define BYTE_ORDER LITTLE_ENDIAN
 #endif /* BYTE_ORDER */
 
-/* Define generic types used in lwIP */
-typedef unsigned   char    u8_t;
-typedef signed     char    s8_t;
-typedef unsigned   short   u16_t;
-typedef signed     short   s16_t;
-typedef unsigned   long    u32_t;
-typedef signed     long    s32_t;
+typedef int sys_prot_t;
 
-typedef size_t mem_ptr_t;
-typedef u32_t sys_prot_t;
+#ifdef _MSC_VER
+/* define _INTPTR for Win32 MSVC stdint.h */
+#define _INTPTR 2
+
+/* Do not use lwIP default definitions for format strings 
+ * because these do not work with MSVC 2010 compiler (no inttypes.h)
+ */
+#define LWIP_NO_INTTYPES_H 1
 
 /* Define (sn)printf formatters for these lwIP types */
 #define X8_F  "02x"
@@ -68,25 +64,13 @@ typedef u32_t sys_prot_t;
 #define S32_F "ld"
 #define X32_F "lx"
 
-#ifdef __GNUC__
-#define S16_F "d"
-#define X16_F "uX"
-#define SZT_F "u"
-#else
 #define S16_F "hd"
 #define X16_F "hx"
 #define SZT_F "lu"
-#endif
+#endif /* _MSC_VER */
 
 /* Compiler hints for packing structures */
-#define PACK_STRUCT_STRUCT
 #define PACK_STRUCT_USE_INCLUDES
-
-/* Plaform specific diagnostic output */
-#define LWIP_PLATFORM_DIAG(x)   do { printf x; } while(0)
-
-#define LWIP_PLATFORM_ASSERT(x) do { printf("Assertion \"%s\" failed at line %d in %s\n", \
-                                     x, __LINE__, __FILE__); fflush(NULL); abort(); } while(0)
 
 #define LWIP_ERROR(message, expression, handler) do { if (!(expression)) { \
   printf("Assertion \"%s\" failed at line %d in %s\n", message, __LINE__, __FILE__); \
@@ -95,10 +79,14 @@ typedef u32_t sys_prot_t;
 #ifdef _MSC_VER
 /* C runtime functions redefined */
 #define snprintf _snprintf
+#define strdup   _strdup
 #endif
 
-u32_t dns_lookup_external_hosts_file(const char *name);
+#ifndef LWIP_NORAND
+extern unsigned int sys_win_rand(void);
+#define LWIP_RAND() (sys_win_rand())
+#endif
 
-#define LWIP_RAND() ((u32_t)rand())
+#define PPP_INCLUDE_SETTINGS_HEADER
 
-#endif /* __ARCH_CC_H__ */
+#endif /* LWIP_ARCH_CC_H */

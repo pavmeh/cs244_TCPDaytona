@@ -35,7 +35,13 @@
 #include <stdio.h>
 #include <stdarg.h>
 
+#ifdef _MSC_VER
+#pragma warning (push, 3)
+#endif
 #include <windows.h>
+#ifdef _MSC_VER
+#pragma warning (pop)
+#endif
 #include "lwipcfg_msvc.h"
 
 /** When 1, use COM ports, when 0, use named pipes (for simulation). */
@@ -121,7 +127,7 @@ sio_setup(HANDLE fd)
   /* change read timeout, leave write timeout as it is */
   cto.ReadIntervalTimeout = 1;
   cto.ReadTotalTimeoutMultiplier = 0;
-  cto.ReadTotalTimeoutConstant = 1;// 1ms //100; /* 10 ms */
+  cto.ReadTotalTimeoutConstant = 1; /* 1 ms */
   if(!SetCommTimeouts(fd, &cto)) {
     return FALSE;
   }
@@ -146,12 +152,12 @@ sio_fd_t sio_open(u8_t devnum)
 #else /* SIO_USE_COMPORT */
   _snprintf(fileName, 255, SIO_DEVICENAME"%lu", (DWORD)(devnum & ~1));
   if ((devnum & 1) == 0) {
-    fileHandle = CreateNamedPipe(fileName, PIPE_ACCESS_DUPLEX, PIPE_TYPE_BYTE | PIPE_NOWAIT,
+    fileHandle = CreateNamedPipeA(fileName, PIPE_ACCESS_DUPLEX, PIPE_TYPE_BYTE | PIPE_NOWAIT,
       PIPE_UNLIMITED_INSTANCES, 102400, 102400, 100, NULL);
   } else
 #endif /* SIO_USE_COMPORT */
   {
-    fileHandle = CreateFile(fileName, GENERIC_READ | GENERIC_WRITE, 0, NULL, OPEN_EXISTING, 0, NULL);
+    fileHandle = CreateFileA(fileName, GENERIC_READ | GENERIC_WRITE, 0, NULL, OPEN_EXISTING, 0, NULL);
   }
   if (fileHandle != INVALID_HANDLE_VALUE) {
     sio_abort = 0;
@@ -170,18 +176,18 @@ sio_fd_t sio_open(u8_t devnum)
 #if SIO_USE_COMPORT
     if(!sio_setup(fileHandle)) {
       CloseHandle(fileHandle);
-      LWIP_DEBUGF(SIO_DEBUG, ("sio_open(%lu): sio_setup failed. GetLastError() returns %d\n",
+      LWIP_DEBUGF(SIO_DEBUG, ("sio_open(%lu): sio_setup failed. GetLastError() returns %lu\n",
                   (DWORD)devnum, GetLastError()));
       return NULL;
     }
 #endif /* SIO_USE_COMPORT */
     LWIP_DEBUGF(SIO_DEBUG, ("sio_open: file \"%s\" successfully opened.\n", fileName));
-    printf("sio_open: file \"%s\" (%lu) successfully opened: 0x%08x\n", fileName, devnum, (u32_t)fileHandle);
+    printf("sio_open: file \"%s\" (%d) successfully opened: 0x%08x\n", fileName, devnum, LWIP_PTR_NUMERIC_CAST(unsigned int, fileHandle));
     return (sio_fd_t)(fileHandle);
   }
-  LWIP_DEBUGF(SIO_DEBUG, ("sio_open(%lu) failed. GetLastError() returns %d\n",
+  LWIP_DEBUGF(SIO_DEBUG, ("sio_open(%lu) failed. GetLastError() returns %lu\n",
               (DWORD)devnum, GetLastError()));
-  printf("sio_open(%lu) failed. GetLastError() returns %d\n",
+  printf("sio_open(%lu) failed. GetLastError() returns %lu\n",
               (DWORD)devnum, GetLastError());
   return NULL;
 }
@@ -236,7 +242,8 @@ u32_t sio_read(sio_fd_t fd, u8_t* data, u32_t len)
   DWORD dwNbBytesReadden = 0;
   LWIP_DEBUGF(SIO_DEBUG, ("sio_read()...\n"));
   ret = ReadFile((HANDLE)(fd), data, len, &dwNbBytesReadden, NULL);
-  LWIP_DEBUGF(SIO_DEBUG, ("sio_read()=%lu bytes -> \n", dwNbBytesReadden, ret));
+  LWIP_DEBUGF(SIO_DEBUG, ("sio_read()=%lu bytes -> %d\n", dwNbBytesReadden, ret));
+  LWIP_UNUSED_ARG(ret);
   return dwNbBytesReadden;
 }
 
@@ -256,7 +263,8 @@ u32_t sio_tryread(sio_fd_t fd, u8_t* data, u32_t len)
   DWORD dwNbBytesReadden = 0;
   LWIP_DEBUGF(SIO_DEBUG, ("sio_read()...\n"));
   ret = ReadFile((HANDLE)(fd), data, len, &dwNbBytesReadden, NULL);
-  LWIP_DEBUGF(SIO_DEBUG, ("sio_read()=%lu bytes -> \n", dwNbBytesReadden, ret));
+  LWIP_DEBUGF(SIO_DEBUG, ("sio_read()=%lu bytes -> %d\n", dwNbBytesReadden, ret));
+  LWIP_UNUSED_ARG(ret);
   return dwNbBytesReadden;
 }
 
@@ -277,6 +285,7 @@ u32_t sio_write(sio_fd_t fd, u8_t* data, u32_t len)
   LWIP_DEBUGF(SIO_DEBUG, ("sio_write()...\n"));
   ret = WriteFile((HANDLE)(fd), data, len, &dwNbBytesWritten, NULL);
   LWIP_DEBUGF(SIO_DEBUG, ("sio_write()=%lu bytes -> %d\n", dwNbBytesWritten, ret));
+  LWIP_UNUSED_ARG(ret);
   return dwNbBytesWritten;
 }
 
