@@ -3,39 +3,41 @@ import matplotlib; matplotlib.use('Agg')
 import matplotlib.pyplot as plt
 import numpy as np
 
-DupFileName = "dupACK.npy"
-SplitFileName = "splitACK.npy"
-NormalFileName = "normal.npy"
-OpFileName = "opACK.npy"
+for cong_control in ['cubic', 'vegas', 'reno']:
 
-dupACKs = np.load(DupFileName)
-splitACKs = np.load(SplitFileName)
-normalACKs = np.load(NormalFileName)
-opACKs = np.load(OpFileName)
+	DupFileName = "dupACK." + cong_control + ".npy"
+	SplitFileName = "splitACK." + cong_control + ".npy"
+	NormalFileName = "normal." + cong_control + ".npy"
+	OpFileName = "opACK." + cong_control + ".npy"
 
-plt.figure(1)
-plt.subplot(311)
-plt.title("Duplicate ACKs")
-plt.scatter(*zip(dupACKs), label="Duplicate ACKs")
-plt.scatter(*zip(normalACKs), label="Normal")
-plt.xlabel("time (s)")
-plt.ylabel("Seq Number")
-plt.legend(loc="lower right")
+	dupACKs = np.load(DupFileName)
+	splitACKs = np.load(SplitFileName)
+	normalACKs = np.load(NormalFileName)
+	opACKs = np.load(OpFileName)
 
-plt.subplot(312)
-plt.title("Split ACKs")
-plt.scatter(*zip(splitACKs), label="Split ACKs")
-plt.scatter(*zip(normalACKs), label="Normal")
-plt.xlabel("time (s)")
-plt.ylabel("Seq Number")
-plt.legend(loc="lower right")
+	plt.figure(1)
+	plt.subplot(311)
+	plt.title("Duplicate ACKs (%s)" % cong_control)
+	plt.scatter(*zip(dupACKs), label="Duplicate ACKs")
+	plt.scatter(*zip(normalACKs), label="Normal")
+	plt.xlabel("time (s)")
+	plt.ylabel("Seq Number")
+	plt.legend(loc="lower right")
 
-plt.subplot(313)
-plt.title("Optimistic ACKs")
-plt.scatter(*zip(opACKs), label="Optimistic ACKs")
-plt.scatter(*zip(normalACKs), label="Normal")
-plt.xlabel("time (s)")
-plt.ylabel("Seq Number")
-plt.legend(loc="lower right")
+	plt.subplot(312)
+	plt.title("Split ACKs (%s)" % cong_control)
+	plt.scatter(*zip(splitACKs), label="Split ACKs")
+	plt.scatter(*zip(normalACKs), label="Normal")
+	plt.xlabel("time (s)")
+	plt.ylabel("Seq Number")
+	plt.legend(loc="lower right")
 
-plt.savefig('data.png')
+	plt.subplot(313)
+	plt.title("Optimistic ACKs (%s)" % cong_control)
+	plt.scatter(*zip(opACKs), label="Optimistic ACKs")
+	plt.scatter(*zip(normalACKs), label="Normal")
+	plt.xlabel("time (s)")
+	plt.ylabel("Seq Number")
+	plt.legend(loc="lower right")
+
+	plt.savefig("data.%s.png" % cong_control)

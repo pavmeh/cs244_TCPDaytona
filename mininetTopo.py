@@ -14,6 +14,7 @@ from mininet.node import OVSController
 parser = argparse.ArgumentParser(description="Run experiment")
 parser.add_argument("--client", type=str, choices=["normal", "opACK", "splitACK", "dupACK"], default="normal")
 parser.add_argument("--server", type=str, choices=["linux", "lwip"], default="linux")
+parser.add_argument("--cong-control", type=str, choices=["reno", "cubic", "vegas"], default="cubic")
 parser.add_argument("--manual", help="Manual mininet commands", action="store_true")
 args = parser.parse_args()
 
@@ -44,7 +45,7 @@ client.cmd("iptables -A OUTPUT -p tcp --tcp-flags RST RST -j DROP")
 client.cmd('sysctl net.ipv4.ip_forward=1')
 
 #server.cmd('sysctl net.core.netdev_max_backlog=500000')
-server.cmd('sysctl net.ipv4.tcp_congestion_control=vegas')
+server.cmd('sysctl net.ipv4.tcp_congestion_control=' + args.cong_control)
 
 if args.manual:
   CLI(net)
@@ -56,14 +57,15 @@ else:
   time.sleep(0.5)
 
   if args.client == "normal":
-    client.popen("python normalTransmission.py %s %s" % (server.IP(), PORT), shell=True).wait()
+    client.popen("python normalTransmission.py %s %s %s" % (server.IP(), PORT, args.cong_control), shell=True).wait()
   elif args.client == "dupACK":
-    client.popen("python dupACKs.py %s %s" % (server.IP(), PORT), shell=True).wait()
+    client.popen("python dupACKs.py %s %s %s" % (server.IP(), PORT, args.cong_control), shell=True).wait()
   elif args.client == "splitACK":
-    client.popen("python splitACK.py %s %s" % (server.IP(), PORT), shell=True).wait()
+    client.popen("python splitACK.py %s %s %s" % (server.IP(), PORT, args.cong_control), shell=True).wait()
   elif args.client == "opACK":
-    client.popen("python opACKs.py %s %s" % (server.IP(), PORT), shell=True).wait()
+    client.popen("python opACKs.py %s %s %s" % (server.IP(), PORT, args.cong_control), shell=True).wait()
 
-  server.popen("pgrep -f webserver.py | xargs kill -9", shell=True).wait()
+  if args.server == "linux":
+    server.popen("pgrep -f webserver.py | xargs kill -9", shell=True).wait()
 
 net.stop()

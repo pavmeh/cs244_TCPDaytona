@@ -7,10 +7,16 @@ import subprocess as sp
 
 IP_DST = sys.argv[1]
 DST_PORT =  int(sys.argv[2])
+
+congestion_control = "cubic"
+
+if len(sys.argv) > 3:
+  congestion_control = sys.argv[3]
+
 IP_SRC = None
 SRC_PORT = random.randint(1024,65535)
 data = list()
-FileName = "normal.npy"
+FileName = "normal." + congestion_control + ".npy"
 
 FIN = 0x01
 
