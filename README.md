@@ -26,7 +26,8 @@ link to:
 http://<external IP>/<name of file>
 ```
 so that it uses http instead of https. Then, you can simply type in the name of
-the png file you wish to view after the slash, as shown above.
+the png file you wish to view after the slash, as shown above. Kill the server
+with ```ctrl+C``` when done.
 
 If you wish to run the experiment again, run ```./cleanup.sh``` first. This
 deletes the previous data files.
