@@ -2,6 +2,7 @@
 
 import argparse
 import time
+import os
 from mininet.topo import Topo
 from mininet.node import CPULimitedHost
 from mininet.link import TCLink
@@ -41,11 +42,7 @@ client = net.get('client')
 server = net.get('server')
 
 client.cmd("iptables -A OUTPUT -p tcp --tcp-flags RST RST -j DROP")
-
-client.cmd('sysctl net.ipv4.ip_forward=1')
-
-#server.cmd('sysctl net.core.netdev_max_backlog=500000')
-server.cmd('sysctl net.ipv4.tcp_congestion_control=' + args.cong_control)
+os.system("sysctl -w net.ipv4.tcp_congestion_control=%s" % args.cong_control)
 
 if args.manual:
   CLI(net)
