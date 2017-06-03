@@ -23,8 +23,8 @@ class DaytonaTopo(Topo):
     client = self.addHost('client')
     server = self.addHost('server')
     switch = self.addSwitch('s0')
-    self.addLink(client, switch, bw=100, delay="5ms", max_queue_size=20, loss=0)
-    self.addLink(server, switch, bw=100, delay="5ms", max_queue_size=20, loss=0)
+    self.addLink(client, switch, bw=100, delay="32ms", max_queue_size=128, loss=0)
+    self.addLink(server, switch, bw=100, delay="32ms", max_queue_size=128, loss=0)
     return
 
 topo = DaytonaTopo()
@@ -37,11 +37,11 @@ net.pingAll()
 client = net.get('client')
 server = net.get('server')
 
-#client.cmd("iptables -A OUTPUT -p tcp --tcp-flags RST RST -j DROP")
+client.cmd("iptables -A OUTPUT -p tcp --tcp-flags RST RST -j DROP")
 
 client.cmd('sysctl net.ipv4.ip_forward=1')
 
-server.cmd('sysctl net.core.netdev_max_backlog=500000')
+#server.cmd('sysctl net.core.netdev_max_backlog=500000')
 server.cmd('sysctl net.ipv4.tcp_congestion_control=cubic')
 
 if args.manual:
@@ -51,14 +51,16 @@ else:
     server.popen("python webserver.py", shell=True)
   elif args.server == "lwip":
     server.popen("./lwip-contrib/ports/unix/unixsim/simhost", shell=True)
-  time.sleep(1)
+  time.sleep(0.5)
 
-  client.popen("python normalTransmission.py %s %s" % (server.IP(), PORT), shell=True).wait()
-  #client.popen("python ./dupACKs.py %s %s" % (server.IP(), PORT), shell=True).wait()
-  #client.popen("python ./splitACKs.py %s %s" % (server.IP(), PORT), shell=True).wait()
-  #client.popen("python ./opACKs.py %s %s" % (server.IP(), PORT), shell=True).wait()
-
-  time.sleep(4.5)
+  if args.client == "normal":
+    client.popen("python normalTransmission.py %s %s" % (server.IP(), PORT), shell=True).wait()
+  elif args.client == "dupACK":
+    client.popen("python dupACKs.py %s %s" % (server.IP(), PORT), shell=True).wait()
+  elif args.client == "splitACK":
+    client.popen("python splitACKs.py %s %s" % (server.IP(), PORT), shell=True).wait()
+  elif args.client == "opACK":
+    client.popen("python opACKs.py %s %s" % (server.IP(), PORT), shell=True).wait()
 
   server.popen("pgrep -f webserver.py | xargs kill -9", shell=True).wait()
 
