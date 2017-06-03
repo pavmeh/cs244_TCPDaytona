@@ -58,7 +58,7 @@ else:
   elif args.client == "dupACK":
     client.popen("python dupACKs.py %s %s" % (server.IP(), PORT), shell=True).wait()
   elif args.client == "splitACK":
-    client.popen("python splitACKs.py %s %s" % (server.IP(), PORT), shell=True).wait()
+    client.popen("python splitACK.py %s %s" % (server.IP(), PORT), shell=True).wait()
   elif args.client == "opACK":
     client.popen("python opACKs.py %s %s" % (server.IP(), PORT), shell=True).wait()
 
