@@ -1,10 +1,14 @@
+#!/usr/bin/python
+
 import matplotlib; matplotlib.use('Agg')
 
 import matplotlib.pyplot as plt
 import numpy as np
 
-for cong_control in ['cubic', 'vegas', 'reno']:
+i=0
 
+for cong_control in ['cubic', 'vegas', 'reno']:
+	i += 1
 	DupFileName = "dupACK." + cong_control + ".npy"
 	SplitFileName = "splitACK." + cong_control + ".npy"
 	NormalFileName = "normal." + cong_control + ".npy"
@@ -15,7 +19,7 @@ for cong_control in ['cubic', 'vegas', 'reno']:
 	normalACKs = np.load(NormalFileName)
 	opACKs = np.load(OpFileName)
 
-	plt.figure(1)
+	plt.figure(i)
 	plt.subplot(311)
 	plt.title("Duplicate ACKs (%s)" % cong_control)
 	plt.scatter(*zip(dupACKs), label="Duplicate ACKs")
