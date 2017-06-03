@@ -70,7 +70,7 @@ def addACKs(pkt):
 
   for ACK_num in ACK_nums:
     ack_pkt = IP(dst=IP_DST) / TCP(window=65535, dport=DST_PORT, sport=SRC_PORT,
-             seq=(pkt[TCP].ack), ack=ACK_num, flags='A')
+             seq=pkt[TCP].ack, ack=ACK_num, flags='A')
     socket.send(Ether() / ack_pkt)
 
 

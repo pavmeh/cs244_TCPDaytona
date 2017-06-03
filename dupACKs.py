@@ -31,7 +31,6 @@ request = IP(dst=IP_DST) / TCP(window=65535, dport=DST_PORT, sport=SRC_PORT,
 
 maxACK = (syn_ack[TCP].seq + 1)
 
-
 def addACKs(pkt):
   global DST_PORT, IP_DST, data, socket, maxACK
   if IP not in pkt:
@@ -63,11 +62,12 @@ def addACKs(pkt):
 
   if maxACK > nextACK_num:
     return
-  elif nextACK_num > maxACK:
-    maxACK = nextACK_num
+  maxACK = nextACK_num
+
+  print our_seq_no
 
   ack_pkt = IP(dst=IP_DST) / TCP(window=65535, dport=DST_PORT, sport=SRC_PORT,
-             seq=(pkt[TCP].ack), ack=nextACK_num, flags='A')
+             seq=(syn_ack[TCP].ack), ack=nextACK_num, flags='A')
   for i in xrange(cnt):
     socket.send(Ether() / ack_pkt)
 
