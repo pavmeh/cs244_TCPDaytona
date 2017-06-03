@@ -17,7 +17,7 @@ cd cs244_TCPDaytona
 Run ``` ./setup.sh ``` to install all the dependencies. Press Y if prompted
 (Note: DO NOT run this with ```sudo```, since this will not install the
 dependencies correctly). If this breaks, run the commands in the script
-individually in the terminal. This only needs to be run only once per VM
+individually in the terminal. This needs to be run only once per VM
 instance.
 
 Run ```./run_experiments.sh``` to run the experiment. It will take
