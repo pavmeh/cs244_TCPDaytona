@@ -19,7 +19,7 @@ SRC_PORT = random.randint(1024,65535)
 data = list()
 FileName = "opACK." + congestion_control + ".npy"
 MTU = 712
-WAIT_TIME = 0.01
+WAIT_TIME = 0.25
 stop = False
 FIN = 0x01
 currACKNo = 0
@@ -108,7 +108,7 @@ def addACKs(pkt):
   #              seq=(pkt[TCP].ack), ack=ACK_num, flags='A')
   #   socket.send(Ether() / ack_pkt)
 
-print("Sniffing......")
+#print("Sniffing......")
 sniff(iface="client-eth0", prn=addACKs, filter="tcp and ip", timeout=4)
 numbas = np.asarray(zip(*data))
 sp.call(["rm", "-f", FileName], shell=True)

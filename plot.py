@@ -7,7 +7,7 @@ import numpy as np
 
 i=0
 
-for cong_control in ['cubic', 'vegas', 'reno']:
+for cong_control in ['cubic', 'reno', 'vegas']:
 	i += 1
 	DupFileName = "dupACK." + cong_control + ".npy"
 	SplitFileName = "splitACK." + cong_control + ".npy"
