@@ -106,7 +106,7 @@
 
 /** The server port for HTTPD to use */
 #ifndef HTTPD_SERVER_PORT
-#define HTTPD_SERVER_PORT                   80
+#define HTTPD_SERVER_PORT                   8888
 #endif
 
 /** Maximum retries before the connection is aborted/closed.
