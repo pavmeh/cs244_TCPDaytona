@@ -49,6 +49,8 @@ getStr = 'GET / HTTP/1.1\r\n\r\n'
 request = IP(dst=IP_DST) / TCP(window=65535, dport=DST_PORT, sport=SRC_PORT,
              seq=(syn_ack[TCP].ack), ack=(syn_ack[TCP].seq + 1), flags='FA') / getStr
 
+our_seq_no = syn_ack[TCP].ack + len(getStr) + 1
+
 maxACK_num = 0
 
 print "Sending Request..."
