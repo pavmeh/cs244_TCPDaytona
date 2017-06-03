@@ -19,7 +19,7 @@ SRC_PORT = random.randint(1024,65535)
 data = list()
 FileName = "opACK." + congestion_control + ".npy"
 MTU = 1472
-WAIT_TIME = 0.25
+WAIT_TIME = 0.05
 stop = False
 FIN = 0x01
 currACKNo = 0
@@ -27,16 +27,13 @@ startACKNo = 0
 MAX_SIZE = 200000
 
 def sendACK():
-  global stop, currACKNo, socket2, startACKNo, sem
-  sem.acquire()
+  global stop, currACKNo, socket2, startACKNo
   while (currACKNo - initialSeq) < MAX_SIZE:
     currACKNo += MTU
     ack_pkt = IP(dst=IP_DST) / TCP(window=65535, dport=DST_PORT, sport=SRC_PORT,
                seq=our_seq_no, ack=currACKNo, flags='A')
     socket2.send(Ether() / ack_pkt)
     print "Sent %d" % currACKNo
-
-sem = threading.Semaphore(0)
 
 t = threading.Timer(WAIT_TIME, sendACK)
 socket = conf.L2socket(iface="client-eth0")
@@ -67,7 +64,7 @@ t.start()
 
 
 def addACKs(pkt):
-  global DST_PORT, IP_DST, data, socket, maxACK_num, sem
+  global DST_PORT, IP_DST, data, socket, maxACK_num
   if IP not in pkt:
     return
   if TCP not in pkt:
@@ -78,7 +75,6 @@ def addACKs(pkt):
     return
 
   data.append((pkt.time - initialTs, pkt[TCP].seq - initialSeq))
-  sem.release()
 sniff(iface="client-eth0", prn=addACKs, filter="tcp and ip", timeout=4)
 numbas = np.asarray(zip(*data))
 sp.call(["rm", "-f", FileName], shell=True)
