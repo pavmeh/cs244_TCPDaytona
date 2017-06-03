@@ -29,6 +29,8 @@ used in your local browser should be of the form:
 http://<external IP>/<name of file>
 ```
 
+The png files available should be named ```data.reno.png``` and ```data.cubic.png```.
+
 From here, simply type in the name of the png file you wish to view after the
 slash, as shown above. Kill the server with ```ctrl+C``` when done.
 
