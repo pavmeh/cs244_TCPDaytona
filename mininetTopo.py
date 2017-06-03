@@ -27,8 +27,8 @@ class DaytonaTopo(Topo):
     client = self.addHost('client')
     server = self.addHost('server')
     switch = self.addSwitch('s0')
-    self.addLink(client, switch, bw=100, delay="32ms", max_queue_size=256, loss=0)
-    self.addLink(server, switch, bw=100, delay="32ms", max_queue_size=256, loss=0)
+    self.addLink(client, switch, bw=100, delay="32ms", max_queue_size=128, loss=0)
+    self.addLink(server, switch, bw=100, delay="32ms", max_queue_size=128, loss=0)
     return
 
 topo = DaytonaTopo()
