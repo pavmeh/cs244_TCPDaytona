@@ -23,8 +23,8 @@ instance.
 Run ```./run_experiments.sh``` to run the experiment. It will take
 approximately 30 seconds to run. An http server is automatically create that
 can be used to view the data files created (.png) by using the external
-IP shown on the Google Cloud Platform Manager for the VM instance. The is
-of the form:
+IP shown on the Google Cloud Platform Manager for the VM instance. The URL
+used in your local browser should be of the form:
 ```
 http://<external IP>/<name of file>
 ```
