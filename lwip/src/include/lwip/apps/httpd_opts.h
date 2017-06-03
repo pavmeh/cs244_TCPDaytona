@@ -129,7 +129,7 @@
 
 /** The server port for HTTPD to use */
 #if !defined HTTPD_SERVER_PORT || defined __DOXYGEN__
-#define HTTPD_SERVER_PORT                   80
+#define HTTPD_SERVER_PORT                   8888
 #endif
 
 /** The https server port for HTTPD to use */
