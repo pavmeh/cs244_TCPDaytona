@@ -18,7 +18,7 @@ IP_SRC = None
 SRC_PORT = random.randint(1024,65535)
 data = list()
 FileName = "opACK." + congestion_control + ".npy"
-MTU = 712
+MTU = 1472
 WAIT_TIME = 0.25
 stop = False
 FIN = 0x01
@@ -27,14 +27,16 @@ startACKNo = 0
 MAX_SIZE = 200000
 
 def sendACK():
- global stop, currACKNo, socket2, startACKNo
- while (currACKNo - initialSeq) < MAX_SIZE:
-   currACKNo += MTU
-   ack_pkt = IP(dst=IP_DST) / TCP(window=65535, dport=DST_PORT, sport=SRC_PORT,
-              seq=our_seq_no, ack=currACKNo, flags='A')
-   socket2.send(Ether() / ack_pkt)
-   print "Sent %d" % currACKNo
+  global stop, currACKNo, socket2, startACKNo, sem
+  sem.acquire()
+  while (currACKNo - initialSeq) < MAX_SIZE:
+    currACKNo += MTU
+    ack_pkt = IP(dst=IP_DST) / TCP(window=65535, dport=DST_PORT, sport=SRC_PORT,
+               seq=our_seq_no, ack=currACKNo, flags='A')
+    socket2.send(Ether() / ack_pkt)
+    print "Sent %d" % currACKNo
 
+sem = threading.Semaphore(0)
 
 t = threading.Timer(WAIT_TIME, sendACK)
 socket = conf.L2socket(iface="client-eth0")
@@ -65,7 +67,7 @@ t.start()
 
 
 def addACKs(pkt):
-  global DST_PORT, IP_DST, data, socket, maxACK_num
+  global DST_PORT, IP_DST, data, socket, maxACK_num, sem
   if IP not in pkt:
     return
   if TCP not in pkt:
@@ -76,7 +78,7 @@ def addACKs(pkt):
     return
 
   data.append((pkt.time - initialTs, pkt[TCP].seq - initialSeq))
-  
+  sem.release()
   # ip_total_len = pkt.getlayer(IP).len
   # ip_header_len = pkt.getlayer(IP).ihl * 32 / 8
   # tcp_header_len = pkt.getlayer(TCP).dataofs * 32 / 8
