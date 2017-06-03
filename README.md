@@ -21,7 +21,7 @@ individually in the terminal. This needs to be run only once per VM
 instance.
 
 Run ```./run_experiments.sh``` to run the experiment. It will take
-approximately 30 seconds to run. An http server is automatically create that
+approximately 1 minute to run. An http server is automatically create that
 can be used to view the data files created (.png) by using the external
 IP shown on the Google Cloud Platform Manager for the VM instance. The URL
 used in your local browser should be of the form:
