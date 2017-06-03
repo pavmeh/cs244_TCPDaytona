@@ -76,20 +76,29 @@ def addACKs(pkt):
   tcp_seg_len = ip_total_len - ip_header_len - tcp_header_len
   
   add = 0
-  cnt = 2
+  cnt = 2 # how many 4*MSS ACKs to send
   if pkt.flags & FIN:
     add = 1
     cnt = 1
     stop = True
 
-  nextACK_num = (pkt[TCP].seq + cnt*tcp_seg_len) + add
-  if nextACK_num < maxACK_num:
-    return
-  maxACK_num = nextACK_num
+  firstACK_num = (pkt[TCP].seq + tcp_seg_len) + add
+  #if maxACK_num > firstACK_num:
+  #  firstACK_num = maxACK_num
+  nextACK_num = (pkt[TCP].seq + tcp_seg_len + cnt*tcp_seg_len*3) + add
+  #if nextACK_num < maxACK_num:
+  #  return
+  #maxACK_num = nextACK_num
 
-  for x in xrange(2):
+  if tcp_seg_len == 0:
+    return
+  toACK = range(firstACK_num, nextACK_num, tcp_seg_len*3)
+  if nextACK_num not in toACK:
+    toACK.append(nextACK_num)
+
+  for ACK_num in toACK:
     ack_pkt = IP(dst=IP_DST) / TCP(window=65535, dport=DST_PORT, sport=SRC_PORT,
-               seq=(pkt[TCP].ack), ack=(pkt[TCP].seq + (x+1)*tcp_seg_len + add), flags='A')
+               seq=(pkt[TCP].ack), ack=ACK_num, flags='A')
     socket.send(Ether() / ack_pkt)
 
 print("Sniffing......")

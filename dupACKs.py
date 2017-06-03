@@ -65,7 +65,7 @@ def addACKs(pkt):
   maxACK = nextACK_num
 
   ack_pkt = IP(dst=IP_DST) / TCP(window=65535, dport=DST_PORT, sport=SRC_PORT,
-             seq=(syn_ack[TCP].ack), ack=nextACK_num, flags='A')
+             seq=(pkt[TCP].ack), ack=nextACK_num, flags='A')
   for i in xrange(cnt):
     socket.send(Ether() / ack_pkt)
 
