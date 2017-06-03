@@ -44,7 +44,7 @@ client.cmd("iptables -A OUTPUT -p tcp --tcp-flags RST RST -j DROP")
 client.cmd('sysctl net.ipv4.ip_forward=1')
 
 #server.cmd('sysctl net.core.netdev_max_backlog=500000')
-server.cmd('sysctl net.ipv4.tcp_congestion_control=cubic')
+server.cmd('sysctl net.ipv4.tcp_congestion_control=vegas')
 
 if args.manual:
   CLI(net)

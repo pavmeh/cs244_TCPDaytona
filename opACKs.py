@@ -12,17 +12,17 @@ IP_SRC = None
 SRC_PORT = random.randint(1024,65535)
 data = list()
 FileName = "opACK.npy"
-MTU = 1500
+MTU = 712
 WAIT_TIME = 0.01
 stop = False
 FIN = 0x01
 currACKNo = 0
 startACKNo = 0
-# MAX_SIZE = 100000
+MAX_SIZE = 200000
 
 def sendACK():
  global stop, currACKNo, socket2, startACKNo
- while True:
+ while (currACKNo - initialSeq) < MAX_SIZE:
    currACKNo += MTU
    ack_pkt = IP(dst=IP_DST) / TCP(window=65535, dport=DST_PORT, sport=SRC_PORT,
               seq=our_seq_no, ack=currACKNo, flags='A')
@@ -30,7 +30,7 @@ def sendACK():
    print "Sent %d" % currACKNo
 
 
-#t = threading.Timer(WAIT_TIME, sendACK)
+t = threading.Timer(WAIT_TIME, sendACK)
 socket = conf.L2socket(iface="client-eth0")
 socket2 = conf.L2socket(iface="client-eth0")
 
@@ -55,7 +55,7 @@ maxACK_num = 0
 
 print "Sending Request..."
 socket.send(Ether() / request)
-#t.start()
+t.start()
 
 
 def addACKs(pkt):

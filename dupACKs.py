@@ -53,7 +53,7 @@ def addACKs(pkt):
   tcp_seg_len = ip_total_len - ip_header_len - tcp_header_len
   
   add = 0
-  cnt = 16
+  cnt = 8
   if pkt.flags & FIN:
     add = 1
     cnt = 1
