@@ -2,6 +2,8 @@
 Provision an n1-standard-2 (2 vCPUs, 7.5 GB memory) Google Cloud instance
 running Ubuntu 16.04. Allow HTTP and HTTPS traffic.
 
+![gcloudimage](https://github.com/pavmeh/cs244_TCPDaytona/blob/master/readme/gcloud.png)
+
 SSH in and install git if needed:
 ```
 sudo apt-get update
