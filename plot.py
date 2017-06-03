@@ -44,4 +44,5 @@ for cong_control in ['cubic', 'reno', 'vegas']:
 	plt.ylabel("Seq Number")
 	plt.legend(loc="lower right")
 
+	plt.tight_layout(pad=0.4, w_pad=0.5, h_pad=1.0)
 	plt.savefig("data.%s.png" % cong_control)
