@@ -8,7 +8,6 @@ sudo pip install scapy
 sudo apt-get -y install mininet
 sudo apt-get -y install openvswitch-testcontroller
 sudo cp /usr/bin/ovs-testcontroller /usr/bin/ovs-controller
-#make -C lwip-contrib/ports/unix/unixsim
 
 sudo modprobe tcp_vegas
 sudo modprobe tcp_cubic
