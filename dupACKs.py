@@ -52,13 +52,13 @@ def addACKs(pkt):
   tcp_seg_len = ip_total_len - ip_header_len - tcp_header_len
   
   add = 0
-  cnt = 5
+  cnt = 64
   if pkt.flags & FIN:
     add = 1
     cnt = 1
 
   ack_pkt = IP(dst=IP_DST) / TCP(window=65535, dport=DST_PORT, sport=SRC_PORT,
-             seq=(pkt[TCP].ack), ack=(pkt[TCP].seq + tcp_seg_len + 1 + add), flags='A')
+             seq=(pkt[TCP].ack), ack=(pkt[TCP].seq + tcp_seg_len + add), flags='A')
   socket.send(Ether() / ack_pkt, count= cnt)
 
 print("Sniffing......")

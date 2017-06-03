@@ -38,20 +38,18 @@ server = net.get('server')
 client.cmd("iptables -A OUTPUT -p tcp --tcp-flags RST RST -j DROP")
 
 if args.manual:
-
+  CLI(net)
+else:
   server.popen("python webserver.py", shell=True)
   time.sleep(1)
 
-  client.popen("./normalTransmission.py %s %s" % (server.IP(), PORT), shell=True).wait()
-  #client.popen("./dupACKs.py %s %s" % (server.IP(), PORT), shell=True).wait()
-  #client.popen("./splitACKs.py %s %s" % (server.IP(), PORT), shell=True).wait()
-  #client.popen("./opACKs.py %s %s" % (server.IP(), PORT), shell=True).wait()
+  client.popen("python normalTransmission.py %s %s" % (server.IP(), PORT), shell=True).wait()
+  #client.popen("python ./dupACKs.py %s %s" % (server.IP(), PORT), shell=True).wait()
+  #client.popen("python ./splitACKs.py %s %s" % (server.IP(), PORT), shell=True).wait()
+  #client.popen("python ./opACKs.py %s %s" % (server.IP(), PORT), shell=True).wait()
 
-  time.sleep(5.5)
+  time.sleep(4.5)
 
   server.popen("pgrep -f webserver.py | xargs kill -9", shell=True).wait()
-
-else:
-  CLI(net)
 
 net.stop()
