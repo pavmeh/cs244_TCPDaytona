@@ -64,8 +64,6 @@ def addACKs(pkt):
     return
   maxACK = nextACK_num
 
-  print our_seq_no
-
   ack_pkt = IP(dst=IP_DST) / TCP(window=65535, dport=DST_PORT, sport=SRC_PORT,
              seq=(syn_ack[TCP].ack), ack=nextACK_num, flags='A')
   for i in xrange(cnt):
