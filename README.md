@@ -23,7 +23,7 @@ in the cloud platform manager for the VM istance. Note, you must change the
 link to:
 
 ```
-http://&lt;external IP&gt;/&lt;name of file&gt;
+http://<external IP>/<name of file>
 ```
 so that it uses http instead of https. Then, you can simply type in the name of
 the png file you wish to view after the slash, as shown above.
