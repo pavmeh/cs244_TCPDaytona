@@ -17,10 +17,10 @@ individually in the terminal. This only needs to be run only once per VM
 instance.
 
 Run ```./run_experiments.sh``` to run the experiment. It will take
-approximately 30 seconds to run. An http server automatically create that can
-used to view the data files created (.png) by clicking on the external IP link
-in the cloud platform manager for the VM istance. Note, you must change the
-link to:
+approximately 30 seconds to run. An http server is automatically create that
+can be used to view the data files created (.png) by clicking on the external
+IP link in the cloud platform manager for the VM istance. Note, you must change
+the link to:
 
 ```
 http://<external IP>/<name of file>
